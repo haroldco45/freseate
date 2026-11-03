@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Freseate · Fresas, Chocolate y Crema · Domicilios en Medellín</title>
+<meta name="description" content="Arma tu vaso de fresas con chocolate o arequipe y crema, elige tus toppings y pide por WhatsApp. Domicilios en Medellín sábados, domingos y festivos.">
+<meta name="theme-color" content="#341a12">
+<link rel="canonical" href="https://freseate.netlify.app/">
+
+<!-- Vista previa del enlace (WhatsApp, Facebook, X) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Freseate">
+<meta property="og:title" content="Freseate · Fresas, Chocolate y Crema">
+<meta property="og:description" content="Arma tu vaso, elige toppings y pide en línea. Domicilios en Medellín sábados, domingos y festivos.">
+<meta property="og:url" content="https://freseate.netlify.app/">
+<meta property="og:image" content="https://freseate.netlify.app/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Vasos de fresas con chocolate y crema de Freseate">
+<meta property="og:locale" content="es_CO">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Freseate · Fresas, Chocolate y Crema">
+<meta name="twitter:description" content="Arma tu vaso y pide en línea. Domicilios en Medellín.">
+<meta name="twitter:image" content="https://freseate.netlify.app/og-image.jpg">
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="img/icon-192.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Freseate">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Barra superior -->
+<header class="topbar" id="topbar">
+  <a href="#inicio" class="brand"><img src="img/logo.webp" alt="Freseate" width="44" height="44"><span>freseate</span></a>
+  <nav class="topnav">
+    <a href="#menu" data-i18n="nav.menu">Menú</a>
+    <a href="#toppings" data-i18n="nav.toppings">Toppings</a>
+    <a href="#como" data-i18n="nav.how">Cómo pedir</a>
+  </nav>
+  <div class="top-actions">
+    <button class="lang" id="langBtn" aria-label="Cambiar idioma">EN</button>
+    <button class="cart-btn" id="cartBtn"><span data-i18n="cart.btn">Pedido</span> <b id="cartCount">0</b></button>
+  </div>
+</header>
+
+<!-- Franja de estado de domicilios (hora real de Colombia) -->
+<div class="status" id="status">
+  <span class="dot"></span><span id="statusText">…</span>
+  <span class="clock" id="clock"></span>
+</div>
+
+<main>
+<!-- HERO -->
+<section class="hero" id="inicio">
+  <div class="swirl" aria-hidden="true"></div>
+  <div class="hero-copy">
+    <p class="kicker" data-i18n="hero.kicker">Fuente de chocolate · Medellín</p>
+    <h1><span data-i18n="hero.t1">Fresas,</span> <em data-i18n="hero.t2">chocolate</em> <span data-i18n="hero.t3">y crema</span></h1>
+    <p class="lead" data-i18n="hero.lead">Frescura, suavidad y el mejor chocolate en un solo lugar. Arma tu vaso a tu gusto y te lo llevamos a la puerta.</p>
+    <div class="hero-cta">
+      <a href="#menu" class="btn btn-red" data-i18n="hero.cta">Armar mi pedido</a>
+      <a href="#" class="btn btn-ghost" id="quickWa" data-i18n="hero.wa">Escribir por WhatsApp</a>
+    </div>
+    <div class="hero-badges">
+      <div><b>$13.000</b><small data-i18n="hero.b1">vaso 12 oz</small></div>
+      <div><b>$17.500</b><small data-i18n="hero.b2">vaso 16 oz</small></div>
+      <div><b data-i18n="hero.b3a">Sáb · Dom</b><small data-i18n="hero.b3">y festivos</small></div>
+    </div>
+  </div>
+  <div class="hero-stage" aria-hidden="true">
+    <img class="float f1" src="img/cut-chocolate.webp" alt="">
+    <img class="float f2" src="img/cut-arequipe.webp" alt="">
+    <img class="berry b1" src="img/cut-bowl.webp" alt="">
+  </div>
+</section>
+
+<!-- Marquesina -->
+<div class="marquee" aria-hidden="true"><div class="track" id="marquee"></div></div>
+
+<!-- MENÚ -->
+<section class="menu" id="menu">
+  <div class="sec-head">
+    <p class="kicker" data-i18n="menu.kicker">Nuestro menú</p>
+    <h2 data-i18n="menu.title">Escoge tu antojo</h2>
+    <div class="filters" id="filters"></div>
+  </div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<!-- TOPPINGS -->
+<section class="tops" id="toppings">
+  <div class="tops-photo"><img src="img/foto-toppings.webp" alt="Toppings de Freseate" loading="lazy"></div>
+  <div class="tops-copy">
+    <p class="kicker" data-i18n="tops.kicker">Toppings</p>
+    <h2 data-i18n="tops.title">El toque final lo pones tú</h2>
+    <p data-i18n="tops.rule">Vaso 12 oz: incluye 1 topping clásico. Vaso 16 oz: incluye 1 clásico + 1 premium. ¿Quieres más? Agrégalos.</p>
+    <div class="tops-cols">
+      <div><h3><span data-i18n="tops.classic">Clásicos</span> <small>+$1.500</small></h3><ul id="listClassic"></ul></div>
+      <div><h3><span data-i18n="tops.premium">Premium</span> <small>+$2.500</small></h3><ul id="listPremium"></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- GALERÍA -->
+<section class="gallery">
+  <div class="sec-head"><p class="kicker" data-i18n="gal.kicker">Así llega</p><h2 data-i18n="gal.title">Hecho al momento, con fresas frescas</h2></div>
+  <div class="strip" id="strip">
+    <figure><img src="img/foto-flyer.webp" alt="" loading="lazy"></figure>
+    <figure><img src="img/foto-chocolate.webp" alt="" loading="lazy"></figure>
+    <figure><img src="img/foto-oblea.webp" alt="" loading="lazy"></figure>
+    <figure><img src="img/foto-arequipe.webp" alt="" loading="lazy"></figure>
+    <figure><img src="img/foto-bowl.webp" alt="" loading="lazy"></figure>
+  </div>
+</section>
+
+<!-- CÓMO PEDIR -->
+<section class="how" id="como">
+  <div class="sec-head"><p class="kicker" data-i18n="how.kicker">Cómo pedir</p><h2 data-i18n="how.title">Tres pasos y listo</h2></div>
+  <ol class="steps">
+    <li><b>1</b><h3 data-i18n="how.s1">Arma tu vaso</h3><p data-i18n="how.s1p">Elige base, tamaño y toppings. El precio se calcula solo.</p></li>
+    <li><b>2</b><h3 data-i18n="how.s2">Escoge el día</h3><p data-i18n="how.s2p">Entregamos sábados, domingos y festivos. Puedes dejarlo apartado desde hoy.</p></li>
+    <li><b>3</b><h3 data-i18n="how.s3">Envía por WhatsApp</h3><p data-i18n="how.s3p">Tu pedido llega completo y ordenado. Te confirmamos valor del domicilio y pago.</p></li>
+  </ol>
+</section>
+
+<!-- MIS PEDIDOS -->
+<section class="history" id="historial" hidden>
+  <div class="sec-head"><p class="kicker" data-i18n="hist.kicker">Tus antojos</p><h2 data-i18n="hist.title">Mis pedidos anteriores</h2></div>
+  <div id="histList" class="hist-list"></div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="final">
+  <img src="img/logo.webp" alt="" class="final-logo" loading="lazy">
+  <h2 data-i18n="final.title">¿Antojo de fresas?</h2>
+  <p data-i18n="final.p">Síguenos en Instagram y comparte la app con quien se merezca un vaso.</p>
+  <div class="hero-cta center">
+    <a class="btn btn-red" href="https://www.instagram.com/freseate.med" target="_blank" rel="noopener" data-i18n="final.ig">Ver Instagram @freseate.med</a>
+    <button class="btn btn-ghost light" id="shareBtn" data-i18n="final.share">Compartir la app</button>
+    <button class="btn btn-ghost light" id="installBtn" hidden data-i18n="final.install">Instalar en mi celular</button>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <p>Freseate · Fresas · Chocolate · Crema · Medellín</p>
+  <p><span data-i18n="foot.wa">Pedidos WhatsApp</span>: <a href="https://wa.me/573108245744">310 824 5744</a> · <a href="https://wa.me/573137753818">313 775 3818</a></p>
+  <p class="made"><span data-i18n="foot.made">App hecha por</span> <a href="https://vibraspositivashm.com" target="_blank" rel="noopener">Vibras Positivas HM</a></p>
+</footer>
+
+<!-- Botón flotante de pedido -->
+<button class="fab" id="fab" hidden><span id="fabText">Ver pedido</span><b id="fabTotal">$0</b></button>
+
+<!-- MODAL: armar producto -->
+<div class="sheet" id="builder" aria-hidden="true">
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet-card">
+    <button class="x" data-close aria-label="Cerrar">Cerrar</button>
+    <div class="b-top">
+      <div class="b-img"><img id="bImg" alt=""></div>
+      <div><p class="kicker" id="bTag"></p><h3 id="bName"></h3><p id="bDesc" class="muted"></p></div>
+    </div>
+    <div id="bBody"></div>
+    <div class="b-foot">
+      <div class="qty"><button id="qMinus" aria-label="menos">−</button><span id="qVal">1</span><button id="qPlus" aria-label="más">+</button></div>
+      <button class="btn btn-red wide" id="bAdd"><span data-i18n="b.add">Agregar</span> · <b id="bPrice">$0</b></button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL: carrito y datos -->
+<div class="sheet right" id="cart" aria-hidden="true">
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet-card">
+    <button class="x" data-close aria-label="Cerrar">Cerrar</button>
+    <h3 data-i18n="cart.title">Tu pedido</h3>
+    <div id="cartItems" class="cart-items"></div>
+    <div class="cart-sum"><span data-i18n="cart.sub">Subtotal productos</span><b id="cartSub">$0</b></div>
+    <p class="muted small" data-i18n="cart.delivery">El valor del domicilio se confirma por WhatsApp según tu barrio.</p>
+
+    <form id="orderForm" class="form" autocomplete="on">
+      <h4 data-i18n="f.title">Datos de entrega</h4>
+      <label><span data-i18n="f.name">Tu nombre</span><input name="nombre" required autocomplete="name"></label>
+      <label><span data-i18n="f.phone">Celular</span><input name="cel" required inputmode="tel" autocomplete="tel" pattern="[0-9 +]{7,15}"></label>
+      <label><span data-i18n="f.addr">Dirección y barrio (Medellín / Valle de Aburrá)</span><input name="dir" required autocomplete="street-address"></label>
+      <div class="two">
+        <label><span data-i18n="f.day">Día de entrega</span><select name="dia" id="daySel" required></select></label>
+        <label><span data-i18n="f.time">Hora preferida</span><select name="hora" id="timeSel"></select></label>
+      </div>
+      <label><span data-i18n="f.pay">Forma de pago</span>
+        <select name="pago" id="paySel"></select></label>
+      <label class="check"><input type="checkbox" name="regalo" id="giftChk"> <span data-i18n="f.gift">Es un regalo (sorprende a alguien)</span></label>
+      <div id="giftBox" hidden>
+        <label><span data-i18n="f.giftTo">¿Para quién?</span><input name="para"></label>
+        <label><span data-i18n="f.giftMsg">Mensaje para la tarjeta</span><textarea name="dedicatoria" rows="2" maxlength="160"></textarea></label>
+      </div>
+      <label><span data-i18n="f.notes">Notas (opcional)</span><textarea name="notas" rows="2"></textarea></label>
+      <button class="btn btn-red wide" type="submit" id="sendBtn"><span data-i18n="f.send">Enviar pedido por WhatsApp</span> · <b id="sendTotal">$0</b></button>
+      <p class="muted small center" data-i18n="f.legal">Al enviar se abre WhatsApp con tu pedido listo. Solo toca enviar.</p>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

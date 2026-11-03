@@ -6,7 +6,7 @@
 const WA_ORDERS = '573108245744';          // WhatsApp de pedidos (catálogo)
 const WA_ALT    = '573137753818';          // WhatsApp del volante
 const TZ = 'America/Bogota';
-const APP_URL = 'https://freseate.netlify.app/';
+const APP_URL = 'https://freseate-medellin.netlify.app/';
 
 // Festivos de Colombia (verificados nov 2026). Formato YYYY-MM-DD
 const FESTIVOS = {

@@ -154,7 +154,39 @@
   <p>Freseate · Fresas · Chocolate · Crema · Medellín</p>
   <p><span data-i18n="foot.wa">Pedidos WhatsApp</span>: <a href="https://wa.me/573108245744">310 824 5744</a> · <a href="https://wa.me/573137753818">313 775 3818</a></p>
   <p class="made"><span data-i18n="foot.made">App hecha por</span> <a href="https://vibraspositivashm.com" target="_blank" rel="noopener">Vibras Positivas HM</a></p>
+  <p><button class="biz-link" id="bizLink" data-i18n="foot.biz">Acceso del negocio</button></p>
 </footer>
+
+<!-- ACCESO DEL NEGOCIO -->
+<div class="sheet" id="login" aria-hidden="true">
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet-card">
+    <button class="x" data-close aria-label="Cerrar">Cerrar</button>
+    <p class="kicker">Freseate</p>
+    <h3>Acceso del negocio</h3>
+    <p class="muted" id="loginHint" style="margin:8px 0 14px">Solo para el dueño. Escribe la clave para ver y manejar los pedidos.</p>
+    <form class="form" id="loginForm">
+      <label><span>Clave</span><input type="password" id="pin" autocomplete="current-password" required></label>
+      <button class="btn btn-red wide" type="submit">Entrar al panel</button>
+    </form>
+  </div>
+</div>
+
+<!-- PANEL DEL NEGOCIO -->
+<div class="admin" id="admin" hidden>
+  <header class="adm-top">
+    <div class="brand"><img src="img/logo.webp" alt="" width="40" height="40"><span>Panel del negocio</span></div>
+    <div class="adm-actions"><button id="admShop">Ver tienda</button><button id="admOut">Salir</button></div>
+  </header>
+  <nav class="adm-tabs" id="admTabs">
+    <button data-tab="pedidos" class="on">Pedidos</button>
+    <button data-tab="produccion">Producción</button>
+    <button data-tab="clientes">Clientes</button>
+    <button data-tab="ventas">Ventas</button>
+    <button data-tab="copia">Copia y ajustes</button>
+  </nav>
+  <div class="adm-body" id="admBody"></div>
+</div>
 
 <!-- Botón flotante de pedido -->
 <button class="fab" id="fab" hidden><span id="fabText">Ver pedido</span><b id="fabTotal">$0</b></button>
@@ -203,6 +235,7 @@
         <label><span data-i18n="f.giftMsg">Mensaje para la tarjeta</span><textarea name="dedicatoria" rows="2" maxlength="160"></textarea></label>
       </div>
       <label><span data-i18n="f.notes">Notas (opcional)</span><textarea name="notas" rows="2"></textarea></label>
+      <button class="btn btn-ghost dark wide" type="button" id="manualBtn" hidden>Guardar como pedido manual (llegó por teléfono o Instagram)</button>
       <button class="btn btn-red wide" type="submit" id="sendBtn"><span data-i18n="f.send">Enviar pedido por WhatsApp</span> · <b id="sendTotal">$0</b></button>
       <p class="muted small center" data-i18n="f.legal">Al enviar se abre WhatsApp con tu pedido listo. Solo toca enviar.</p>
     </form>
@@ -211,6 +244,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="config.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

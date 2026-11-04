@@ -6,7 +6,8 @@
 const WA_ORDERS = '573108245744';          // WhatsApp de pedidos (catálogo)
 const WA_ALT    = '573137753818';          // WhatsApp del volante
 const TZ = 'America/Bogota';
-const APP_URL = 'https://freseate-medellin.netlify.app/';
+const CFG = Object.assign({ WA:WA_ORDERS, CLAVE:'fresas2026', URL:'https://freseate-medellin.netlify.app/' }, window.FRESEATE || {});
+const APP_URL = CFG.URL;
 
 // Festivos de Colombia (verificados nov 2026). Formato YYYY-MM-DD
 const FESTIVOS = {
@@ -85,7 +86,7 @@ const I18N = {
     'hist.kicker':'Tus antojos','hist.title':'Mis pedidos anteriores',
     'final.title':'¿Antojo de fresas?','final.p':'Síguenos en Instagram y comparte la app con quien se merezca un vaso.',
     'final.ig':'Ver Instagram @freseate.med','final.share':'Compartir la app','final.install':'Instalar en mi celular',
-    'foot.wa':'Pedidos WhatsApp','foot.made':'App hecha por',
+    'foot.wa':'Pedidos WhatsApp','foot.made':'App hecha por','foot.biz':'Acceso del negocio',
     'b.add':'Agregar','cart.title':'Tu pedido','cart.sub':'Subtotal productos',
     'cart.delivery':'El valor del domicilio se confirma por WhatsApp según tu barrio.',
     'f.title':'Datos de entrega','f.name':'Tu nombre','f.phone':'Celular','f.addr':'Dirección y barrio (Medellín / Valle de Aburrá)',
@@ -121,7 +122,7 @@ const I18N = {
     'hist.kicker':'Your treats','hist.title':'My previous orders',
     'final.title':'Craving strawberries?','final.p':'Follow us on Instagram and share the app with someone who deserves a cup.',
     'final.ig':'See Instagram @freseate.med','final.share':'Share the app','final.install':'Install on my phone',
-    'foot.wa':'WhatsApp orders','foot.made':'App made by',
+    'foot.wa':'WhatsApp orders','foot.made':'App made by','foot.biz':'Business access',
     'b.add':'Add','cart.title':'Your order','cart.sub':'Products subtotal',
     'cart.delivery':'Delivery fee is confirmed on WhatsApp depending on your neighborhood.',
     'f.title':'Delivery details','f.name':'Your name','f.phone':'Mobile','f.addr':'Address and neighborhood (Medellín area)',
@@ -192,7 +193,7 @@ function applyLang(){
   $('#timeSel').innerHTML = ['asap','morning','noon','afternoon','evening'].map(k=>`<option value="${k}">${t(k)}</option>`).join('');
   $('#paySel').innerHTML = ['cash','transfer'].map(k=>`<option value="${k}">${t(k)}</option>`).join('');
   renderFilters(); renderGrid(); renderDays(); renderStatus(); renderCart(); renderHistory();
-  $('#quickWa').href = `https://wa.me/${WA_ORDERS}?text=${encodeURIComponent(lang==='en'?'Hi Freseate! I would like to place an order.':'¡Hola Freseate! Quiero hacer un pedido.')}`;
+  $('#quickWa').href = `https://wa.me/${CFG.WA}?text=${encodeURIComponent(lang==='en'?'Hi Freseate! I would like to place an order.':'¡Hola Freseate! Quiero hacer un pedido.')}`;
 }
 
 function renderFilters(){
@@ -359,42 +360,290 @@ const saved = store.get('fr_client', {});
 ['nombre','cel','dir'].forEach(k => { if(saved[k]) form.elements[k].value = saved[k]; });
 $('#giftChk').onchange = e => { $('#giftBox').hidden = !e.target.checked; };
 
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  if(!cart.length){ toast(t('fillCart')); return; }
+function buildOrder(){
   const f = Object.fromEntries(new FormData(form));
   store.set('fr_client', {nombre:f.nombre, cel:f.cel, dir:f.dir});
   const now = new Date(); const b = bogotaParts(now);
   const id = `FRE-${String(b.m).padStart(2,'0')}${String(b.d).padStart(2,'0')}-${Math.floor(100+Math.random()*900)}`;
-  const when = new Intl.DateTimeFormat('es-CO',{timeZone:TZ,weekday:'long',day:'numeric',month:'long',hour:'numeric',minute:'2-digit'}).format(now);
   const dayOpt = $('#daySel').selectedOptions[0];
-  const horas = {asap:'Lo antes posible',morning:'En la mañana',noon:'Al mediodía',afternoon:'En la tarde',evening:'En la noche'};
-  const pagos = {cash:'Efectivo contra entrega',transfer:'Transferencia'};
+  return { id, at: now.toISOString(), dia: f.dia, diaLabel: dayOpt ? dayOpt.dataset.label : f.dia, hora: f.hora,
+    nombre: f.nombre, cel: f.cel, dir: f.dir, pago: f.pago, regalo: !!f.regalo, para: f.para||'', dedicatoria: f.dedicatoria||'',
+    notas: f.notas||'', lang, items: cart.map(({pid,size,inclC,inclP,extras,qty}) => ({pid,size,inclC,inclP,extras,qty})),
+    total: cartTotal(), dom: 0, st: 'Nuevo' };
+}
+const HORAS = {asap:'Lo antes posible',morning:'En la mañana',noon:'Al mediodía',afternoon:'En la tarde',evening:'En la noche'};
+const PAGOS = {cash:'Efectivo contra entrega',transfer:'Transferencia'};
+function resetAfterOrder(){
+  cart = []; saveCart(); renderHistory(); closeSheets();
+  form.elements.notas.value=''; form.elements.dedicatoria.value=''; form.elements.para.value=''; $('#giftChk').checked=false; $('#giftBox').hidden=true;
+}
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  if(!cart.length){ toast(t('fillCart')); return; }
+  const o = buildOrder();
+  const when = new Intl.DateTimeFormat('es-CO',{timeZone:TZ,weekday:'long',day:'numeric',month:'long',hour:'numeric',minute:'2-digit'}).format(new Date(o.at));
   const lines = [];
-  lines.push(`*NUEVO PEDIDO FRESEATE* ${id}`);
+  lines.push(`*NUEVO PEDIDO FRESEATE* ${o.id}`);
   lines.push(`_${when} (hora Colombia)_`, '');
-  cart.forEach((it,i) => {
+  o.items.forEach((it,i) => {
     const p = prodById(it.pid); const s = p.sizes ? p.sizes.find(x=>x.id===it.size) : null;
     lines.push(`*${i+1}. ${it.qty} x ${p.name.es}${s?' '+s.label:''}* — ${money(unitPrice(it)*it.qty)}`);
     itemDetail(it,'es').forEach(d => lines.push(`   ${d}`));
   });
-  lines.push('', `*Subtotal: ${money(cartTotal())}* (+ domicilio por confirmar)`, '');
-  lines.push(`*Entrega:* ${dayOpt ? dayOpt.dataset.label : f.dia} · ${horas[f.hora]||''}`);
-  lines.push(`*Nombre:* ${f.nombre}`, `*Celular:* ${f.cel}`, `*Dirección:* ${f.dir}`, `*Pago:* ${pagos[f.pago]||''}`);
-  if(f.regalo){ lines.push(`*Es regalo para:* ${f.para||'-'}`); if(f.dedicatoria) lines.push(`*Tarjeta:* "${f.dedicatoria}"`); }
-  if(f.notas) lines.push(`*Notas:* ${f.notas}`);
+  lines.push('', `*Subtotal: ${money(o.total)}* (+ domicilio por confirmar)`, '');
+  lines.push(`*Entrega:* ${o.diaLabel} · ${HORAS[o.hora]||''}`);
+  lines.push(`*Nombre:* ${o.nombre}`, `*Celular:* ${o.cel}`, `*Dirección:* ${o.dir}`, `*Pago:* ${PAGOS[o.pago]||''}`);
+  if(o.regalo){ lines.push(`*Es regalo para:* ${o.para||'-'}`); if(o.dedicatoria) lines.push(`*Tarjeta:* "${o.dedicatoria}"`); }
+  if(o.notas) lines.push(`*Notas:* ${o.notas}`);
   if(lang==='en') lines.push('', '(Cliente usó la app en inglés)');
-  lines.push('', 'Pedido hecho desde la app ' + APP_URL);
-  const url = `https://wa.me/${WA_ORDERS}?text=${encodeURIComponent(lines.join('\n'))}`;
+  lines.push('', 'Para el registro del negocio (toca el enlace):', CFG.URL + '#p=' + pack(o));
+  const url = `https://wa.me/${CFG.WA}?text=${encodeURIComponent(lines.join('\n'))}`;
 
   const hist = store.get('fr_hist', []);
-  hist.unshift({ id, at: now.toISOString(), items: cart, total: cartTotal() });
+  hist.unshift({ id:o.id, at:o.at, items: cart, total: o.total });
   store.set('fr_hist', hist.slice(0,10));
+  if(isAdmin()) saveAdminOrder(o);
   window.open(url, '_blank');
   toast(t('sentOk'));
-  cart = []; saveCart(); renderHistory(); closeSheets();
-  form.elements.notas.value=''; form.elements.dedicatoria.value=''; form.elements.para.value=''; $('#giftChk').checked=false; $('#giftBox').hidden=true;
+  resetAfterOrder();
 });
+$('#manualBtn').onclick = () => {
+  if(!cart.length){ toast(t('fillCart')); return; }
+  if(!form.reportValidity()) return;
+  const o = buildOrder(); o.manual = true; o.id = o.id.replace('FRE-','FRM-');
+  saveAdminOrder(o); resetAfterOrder(); toast('Pedido manual ' + o.id + ' guardado'); openAdmin('pedidos');
+};
+
+/* ================= PANEL DEL NEGOCIO ================= */
+function pack(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function unpack(s){ return JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))))); }
+const AKEY = 'fr_admin_on', OKEY = 'fr_admin_orders';
+const isAdmin = () => store.get(AKEY, false) === true;
+const getOrders = () => store.get(OKEY, []);
+const setOrders = a => store.set(OKEY, a);
+function saveAdminOrder(o){
+  const a = getOrders(); if(a.some(x=>x.id===o.id)) return false;
+  a.unshift(o); setOrders(a); return true;
+}
+const STATES = ['Nuevo','Confirmado','En camino','Entregado','Cancelado'];
+const NEXT = {Nuevo:'Confirmado', Confirmado:'En camino', 'En camino':'Entregado'};
+let pendingOrder = null, admTab = 'pedidos', admFilter = 'Activos', admDay = 'all';
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const telWa = c => { let d = String(c||'').replace(/\D/g,''); if(d.length===10) d = '57'+d; return d; };
+const orderTotal = o => (o.total||0) + (+o.dom||0);
+const dayLabelOf = key => { const [y,m,d] = key.split('-').map(Number); return new Intl.DateTimeFormat('es-CO',{timeZone:TZ,weekday:'long',day:'numeric',month:'short'}).format(new Date(Date.UTC(y,m-1,d,17))); };
+
+function showLogin(hint){
+  $('#loginHint').textContent = hint || 'Solo para el dueño. Escribe la clave para ver y manejar los pedidos.';
+  openSheet('#login'); setTimeout(()=>$('#pin').focus(), 300);
+}
+$('#loginForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if($('#pin').value.trim() !== CFG.CLAVE){ toast('Clave incorrecta'); return; }
+  $('#pin').value=''; store.set(AKEY, true); closeSheets(); $('#manualBtn').hidden = false;
+  if(pendingOrder){ const o = pendingOrder; pendingOrder = null; receiveOrder(o); } else openAdmin('pedidos');
+});
+$('#bizLink').onclick = () => isAdmin() ? openAdmin(admTab) : showLogin();
+function receiveOrder(o){
+  const isNew = saveAdminOrder(o); admFilter = 'Activos'; admDay = 'all';
+  openAdmin('pedidos'); toast(isNew ? `Pedido ${o.id} guardado en tu registro` : 'Ese pedido ya estaba guardado');
+}
+function openAdmin(tab){
+  admTab = tab || admTab; $('#admin').hidden = false; document.body.style.overflow='hidden'; renderAdmin();
+}
+function closeAdmin(){ $('#admin').hidden = true; document.body.style.overflow=''; }
+$('#admShop').onclick = closeAdmin;
+$('#admOut').onclick = () => { store.set(AKEY,false); $('#manualBtn').hidden = true; closeAdmin(); toast('Saliste del modo negocio'); };
+$('#admTabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if(b){ admTab = b.dataset.tab; renderAdmin(); } });
+
+function renderAdmin(){
+  document.querySelectorAll('#admTabs button').forEach(b => b.classList.toggle('on', b.dataset.tab===admTab));
+  const body = $('#admBody');
+  body.innerHTML = ({pedidos:admPedidos, produccion:admProduccion, clientes:admClientes, ventas:admVentas, copia:admCopia}[admTab])();
+  body.scrollTop = 0;
+}
+function itemsHtml(o){
+  return o.items.map(it => `<li><b>${it.qty} x</b> ${esc(itemLabel(it))}${itemDetail(it,'es').map(d=>`<small>${esc(d)}</small>`).join('')}</li>`).join('');
+}
+function stats(){
+  const a = getOrders(); const today = bogotaParts().key;
+  const recToday = a.filter(o => bogotaParts(new Date(o.at)).key === today && o.st!=='Cancelado');
+  const pend = a.filter(o => ['Nuevo','Confirmado','En camino'].includes(o.st));
+  const next = deliveryDays(1)[0];
+  const forNext = a.filter(o => o.dia === next.key && o.st!=='Cancelado');
+  const delivToday = a.filter(o => o.st==='Entregado' && o.dia === today);
+  return {recToday, pend, next, forNext, delivToday};
+}
+function admPedidos(){
+  const a = getOrders(); const st = stats();
+  const days = [...new Set(a.map(o=>o.dia))].sort();
+  let list = a.filter(o => admFilter==='Todos' ? true : admFilter==='Activos' ? ['Nuevo','Confirmado','En camino'].includes(o.st) : o.st===admFilter);
+  if(admDay!=='all') list = list.filter(o => o.dia === admDay);
+  list.sort((x,y) => (x.dia||'').localeCompare(y.dia||'') || x.at.localeCompare(y.at));
+  return `
+  <div class="adm-stats">
+    <div><b>${st.recToday.length}</b><span>Pedidos recibidos hoy</span></div>
+    <div><b>${st.pend.length}</b><span>Pendientes por entregar</span></div>
+    <div><b>${st.forNext.length}</b><span>Para el ${esc(dayLabelOf(st.next.key))}</span></div>
+    <div><b>${money(st.forNext.reduce((s,o)=>s+orderTotal(o),0))}</b><span>Valor de esa entrega</span></div>
+  </div>
+  <div class="adm-filters">
+    ${['Activos',...STATES,'Todos'].map(f=>`<button class="chip ${f===admFilter?'on':''}" data-af="${f}">${f}</button>`).join('')}
+    <select id="admDaySel"><option value="all">Todos los días</option>${days.map(d=>`<option value="${d}" ${d===admDay?'selected':''}>${esc(dayLabelOf(d))}</option>`).join('')}</select>
+  </div>
+  <button class="btn btn-red" id="admNew">Registrar pedido manual</button>
+  <div class="adm-list">
+  ${list.length ? list.map(o => `
+    <article class="ord st-${o.st.replace(' ','-')}" data-id="${o.id}">
+      <div class="ord-h"><div><b>${o.id}</b>${o.manual?' <em>manual</em>':''}<small>Recibido ${esc(fmtDay(new Date(o.at),{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}))}</small></div>
+        <span class="badge">${o.st}</span></div>
+      <div class="ord-who"><b>${esc(o.nombre)}</b> · ${esc(o.cel)}<br>${esc(o.dir)}<br><span class="deliv">Entrega: ${esc(o.diaLabel)} · ${HORAS[o.hora]||''}</span> · ${PAGOS[o.pago]||''}</div>
+      ${o.regalo?`<div class="gift">Regalo para ${esc(o.para||'-')}${o.dedicatoria?` · Tarjeta: "${esc(o.dedicatoria)}"`:''}</div>`:''}
+      <ul class="ord-items">${itemsHtml(o)}</ul>
+      ${o.notas?`<p class="note">Notas: ${esc(o.notas)}</p>`:''}
+      <div class="ord-tot"><span>Productos ${money(o.total)}</span>
+        <label>Domicilio $ <input type="number" min="0" step="500" value="${+o.dom||''}" data-dom="${o.id}" placeholder="0"></label>
+        <b>Total ${money(orderTotal(o))}</b></div>
+      <div class="ord-act">
+        ${NEXT[o.st]?`<button class="btn btn-red" data-next="${o.id}">Pasar a: ${NEXT[o.st]}</button>`:''}
+        <button class="btn btn-ghost dark" data-msg="${o.id}">Escribir al cliente</button>
+        <a class="btn btn-ghost dark" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.dir+', Medellín')}">Ver dirección</a>
+        ${o.st!=='Cancelado'&&o.st!=='Entregado'?`<button class="lnk" data-cancel="${o.id}">Cancelar</button>`:''}
+        <button class="lnk" data-del="${o.id}">Borrar</button>
+      </div>
+    </article>`).join('') : '<p class="adm-empty">No hay pedidos en esta vista. Cuando un cliente envíe su pedido, toca el enlace que llega en el WhatsApp y queda guardado aquí.</p>'}
+  </div>`;
+}
+function countProduction(orders){
+  const prod = {}, tops = {};
+  orders.forEach(o => o.items.forEach(it => {
+    const k = itemLabel(it); prod[k] = (prod[k]||0) + it.qty;
+    [it.inclC, it.inclP].filter(Boolean).forEach(id => tops[id] = (tops[id]||0) + it.qty);
+    Object.entries(it.extras||{}).forEach(([id,q]) => tops[id] = (tops[id]||0) + q*it.qty);
+    const p = prodById(it.pid); if(p.id==='bowl'){ tops.oblea_b=(tops.oblea_b||0)+it.qty; tops.queso=(tops.queso||0)+it.qty; }
+    if(p.id==='oblea'){ tops.queso=(tops.queso||0)+it.qty; }
+  }));
+  return {prod, tops};
+}
+function admProduccion(){
+  const a = getOrders().filter(o => o.st!=='Cancelado');
+  const days = [...new Set(a.map(o=>o.dia))].sort();
+  const sel = days.includes(admDay) ? admDay : (days.find(d => d >= bogotaParts().key) || days[days.length-1]);
+  if(!sel) return '<p class="adm-empty">Todavía no hay pedidos para preparar.</p>';
+  const orders = a.filter(o => o.dia === sel);
+  const {prod, tops} = countProduction(orders);
+  const tname = id => id==='oblea_b' ? 'Galletas de oblea (bowl)' : (topById(id)?.es || id);
+  return `
+  <div class="adm-filters"><span>Día de entrega:</span><select id="admDaySel">${days.map(d=>`<option value="${d}" ${d===sel?'selected':''}>${esc(dayLabelOf(d))}</option>`).join('')}</select></div>
+  <div class="adm-grid2">
+    <div class="panel"><h4>Qué preparar · ${orders.length} pedidos</h4><ul class="count">${Object.entries(prod).sort((x,y)=>y[1]-x[1]).map(([k,v])=>`<li><span>${esc(k)}</span><b>${v}</b></li>`).join('')}</ul></div>
+    <div class="panel"><h4>Toppings a tener listos (porciones)</h4><ul class="count">${Object.entries(tops).sort((x,y)=>y[1]-x[1]).map(([k,v])=>`<li><span>${esc(tname(k))}</span><b>${v}</b></li>`).join('')}</ul></div>
+  </div>
+  <div class="panel"><h4>Ruta de entregas</h4><ol class="route">${orders.map(o=>`<li><b>${esc(o.nombre)}</b> · ${HORAS[o.hora]||''} · ${esc(o.cel)}<br>${esc(o.dir)} · <a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.dir+', Medellín')}">mapa</a> · cobrar ${money(orderTotal(o))} (${PAGOS[o.pago]||''})</li>`).join('')}</ol>
+  <button class="btn btn-ghost dark" id="admRouteWa">Enviar la ruta por WhatsApp al domiciliario</button></div>`;
+}
+function admClientes(){
+  const map = {};
+  getOrders().filter(o=>o.st!=='Cancelado').forEach(o => {
+    const k = telWa(o.cel) || o.nombre; const c = map[k] ||= {nombre:o.nombre, cel:o.cel, n:0, total:0, last:o.at, dir:o.dir};
+    c.n++; c.total += orderTotal(o); if(o.at > c.last){ c.last = o.at; c.dir = o.dir; c.nombre = o.nombre; }
+  });
+  const list = Object.values(map).sort((x,y)=>y.total-x.total);
+  if(!list.length) return '<p class="adm-empty">Aquí aparecen tus clientes a medida que lleguen pedidos.</p>';
+  return `<p class="muted" style="margin-bottom:12px">${list.length} clientes. Los primeros son los que más te han comprado.</p>
+  <div class="adm-list">${list.map(c=>`<div class="cli"><div><b>${esc(c.nombre)}</b><small>${esc(c.cel)} · ${esc(c.dir)}</small>
+    <small>${c.n} pedido${c.n>1?'s':''} · ${money(c.total)} · último ${esc(fmtDay(new Date(c.last),{day:'numeric',month:'short'}))}</small></div>
+    <a class="btn btn-ghost dark" target="_blank" rel="noopener" href="https://wa.me/${telWa(c.cel)}?text=${encodeURIComponent(`¡Hola ${c.nombre}! Te saluda Freseate. Este fin de semana tenemos fresas frescas con chocolate y crema. Pide aquí: ${CFG.URL}`)}">Invitar a pedir</a></div>`).join('')}</div>`;
+}
+function admVentas(){
+  const a = getOrders().filter(o => o.st==='Entregado');
+  const byDay = {};
+  a.forEach(o => { const d = byDay[o.dia] ||= {n:0, prod:0, dom:0}; d.n++; d.prod += o.total; d.dom += (+o.dom||0); });
+  const rows = Object.entries(byDay).sort((x,y)=>y[0].localeCompare(x[0]));
+  const b = bogotaParts(); const monthKey = `${b.y}-${String(b.m).padStart(2,'0')}`;
+  const month = a.filter(o => (o.dia||'').startsWith(monthKey));
+  const tot = month.reduce((s,o)=>s+o.total,0);
+  const {prod} = countProduction(month);
+  const top = Object.entries(prod).sort((x,y)=>y[1]-x[1])[0];
+  return `<div class="adm-stats">
+    <div><b>${money(tot)}</b><span>Vendido este mes (productos)</span></div>
+    <div><b>${month.length}</b><span>Pedidos entregados este mes</span></div>
+    <div><b>${month.length?money(tot/month.length):'$0'}</b><span>Promedio por pedido</span></div>
+    <div><b style="font-size:1.1rem">${top?esc(top[0]):'-'}</b><span>Lo más vendido${top?` (${top[1]})`:''}</span></div>
+  </div>
+  <div class="panel"><h4>Ventas por día de entrega</h4>${rows.length?`<table class="tbl"><tr><th>Día</th><th>Pedidos</th><th>Productos</th><th>Domicilios</th></tr>
+  ${rows.map(([d,v])=>`<tr><td>${esc(dayLabelOf(d))}</td><td>${v.n}</td><td>${money(v.prod)}</td><td>${money(v.dom)}</td></tr>`).join('')}</table>`:'<p class="muted">Cuando marques pedidos como Entregado, las ventas aparecen aquí.</p>'}</div>`;
+}
+function admCopia(){
+  return `<div class="panel"><h4>Copia de seguridad</h4>
+    <p class="muted">El registro vive en este celular. Descarga una copia cada semana y guárdala en tu WhatsApp o en Drive.</p>
+    <div class="ord-act"><button class="btn btn-red" id="bkDown">Descargar copia</button>
+    <button class="btn btn-ghost dark" id="bkCsv">Descargar para Excel</button>
+    <label class="btn btn-ghost dark" for="bkUp">Restaurar copia</label><input type="file" id="bkUp" accept=".json,application/json" hidden></div></div>
+  <div class="panel"><h4>Cómo funciona</h4><ol class="route">
+    <li>El cliente arma su pedido y lo envía. Te llega al WhatsApp ${esc(CFG.WA.replace(/^57/,''))} con un enlace al final.</li>
+    <li>Toca ese enlace desde este celular: el pedido queda guardado aquí, con el día de entrega.</li>
+    <li>Cambia el estado: Confirmado, En camino, Entregado. Con "Escribir al cliente" le mandas el mensaje listo.</li>
+    <li>En Producción ves cuántos vasos y toppings preparar, y la ruta para el domiciliario.</li>
+    <li>Si un pedido llega por llamada o Instagram, regístralo con "Registrar pedido manual".</li></ol>
+    <p class="muted small">La clave se cambia en el archivo config.js del repositorio.</p></div>
+  <div class="panel danger"><h4>Borrar todo</h4><p class="muted">Elimina todos los pedidos de este celular. Descarga una copia antes.</p>
+    <button class="lnk" id="bkWipe">Borrar todos los pedidos</button></div>`;
+}
+function download(name, text, type){
+  const blob = new Blob([text], {type}); const u = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u), 2000);
+}
+function customerMsg(o){
+  const n = o.nombre.split(' ')[0];
+  if(o.st==='Nuevo') return `¡Hola ${n}! Te saluda Freseate. Recibimos tu pedido ${o.id}.\nProductos: ${money(o.total)}\nDomicilio: ${+o.dom?money(o.dom):'por confirmar'}\n*Total: ${money(orderTotal(o))}*\nTe lo llevamos el ${o.diaLabel}. ¿Confirmamos?`;
+  if(o.st==='Confirmado') return `¡Hola ${n}! Tu pedido ${o.id} de Freseate está confirmado para el ${o.diaLabel}. Total ${money(orderTotal(o))}. Te avisamos cuando salga.`;
+  if(o.st==='En camino') return `¡Hola ${n}! Tu pedido ${o.id} de Freseate va en camino. Ten listo ${money(orderTotal(o))} (${PAGOS[o.pago]||''}).`;
+  if(o.st==='Entregado') return `¡Gracias ${n} por tu compra en Freseate! Esperamos que lo disfrutes. Síguenos en Instagram @freseate.med y vuelve a pedir aquí: ${CFG.URL}`;
+  return `Hola ${n}, te escribimos de Freseate sobre tu pedido ${o.id}.`;
+}
+$('#admBody').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  const a = getOrders(); const find = id => a.find(o=>o.id===id);
+  if(b.dataset.af){ admFilter = b.dataset.af; return renderAdmin(); }
+  if(b.id==='admNew'){ closeAdmin(); location.hash = 'menu'; toast('Arma el pedido en el menú y guárdalo como pedido manual'); return; }
+  if(b.dataset.next){ const o = find(b.dataset.next); o.st = NEXT[o.st]; setOrders(a); toast(`${o.id}: ${o.st}`); return renderAdmin(); }
+  if(b.dataset.cancel){ if(!confirmAction('¿Cancelar este pedido?')) return; find(b.dataset.cancel).st='Cancelado'; setOrders(a); return renderAdmin(); }
+  if(b.dataset.del){ if(!confirmAction('¿Borrar este pedido del registro?')) return; setOrders(a.filter(o=>o.id!==b.dataset.del)); return renderAdmin(); }
+  if(b.dataset.msg){ const o = find(b.dataset.msg); window.open(`https://wa.me/${telWa(o.cel)}?text=${encodeURIComponent(customerMsg(o))}`, '_blank'); return; }
+  if(b.id==='admRouteWa'){
+    const sel = $('#admDaySel').value; const os = a.filter(o=>o.dia===sel && o.st!=='Cancelado');
+    const txt = `*Ruta Freseate · ${dayLabelOf(sel)}*\n\n` + os.map((o,i)=>`${i+1}. ${o.nombre} · ${o.cel}\n${o.dir}\nCobrar ${money(orderTotal(o))} (${PAGOS[o.pago]||''})${o.regalo?`\nRegalo para ${o.para}`:''}`).join('\n\n');
+    window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank'); return;
+  }
+  if(b.id==='bkDown'){ const k = bogotaParts().key; download(`freseate-copia-${k}.json`, JSON.stringify({app:'freseate', at:new Date().toISOString(), orders:a}, null, 1), 'application/json'); return; }
+  if(b.id==='bkCsv'){
+    const head = ['Pedido','Recibido','Entrega','Estado','Cliente','Celular','Dirección','Pago','Productos','Detalle','Valor productos','Domicilio','Total'];
+    const rows = a.map(o => [o.id, new Date(o.at).toLocaleString('es-CO',{timeZone:TZ}), o.diaLabel, o.st, o.nombre, o.cel, o.dir, PAGOS[o.pago]||'',
+      o.items.map(it=>`${it.qty} x ${itemLabel(it)}`).join(' | '), o.items.map(it=>itemDetail(it,'es').join('; ')).join(' | '), o.total, +o.dom||0, orderTotal(o)]);
+    const csv = '﻿' + [head, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';')).join('\r\n');
+    download(`freseate-pedidos-${bogotaParts().key}.csv`, csv, 'text/csv;charset=utf-8'); return;
+  }
+  if(b.id==='bkWipe'){ if(!confirmAction('¿Seguro? Se borran TODOS los pedidos de este celular.')) return; setOrders([]); renderAdmin(); }
+});
+$('#admBody').addEventListener('change', e => {
+  if(e.target.id==='admDaySel'){ admDay = e.target.value; return renderAdmin(); }
+  if(e.target.dataset.dom){ const a = getOrders(); const o = a.find(x=>x.id===e.target.dataset.dom); o.dom = Math.max(0, +e.target.value||0); setOrders(a); renderAdmin(); }
+  if(e.target.id==='bkUp' && e.target.files[0]){
+    e.target.files[0].text().then(txt => {
+      const data = JSON.parse(txt); const inc = Array.isArray(data) ? data : data.orders; if(!Array.isArray(inc)) throw 0;
+      const a = getOrders(); let n = 0; inc.forEach(o => { if(o && o.id && !a.some(x=>x.id===o.id)){ a.push(o); n++; } });
+      a.sort((x,y)=>y.at.localeCompare(x.at)); setOrders(a); toast(`Copia restaurada: ${n} pedidos nuevos`); renderAdmin();
+    }).catch(() => toast('Ese archivo no es una copia de Freseate'));
+  }
+});
+// Confirmación sin ventanas del navegador: segundo toque en 3 segundos
+let confirmKey = null, confirmT;
+function confirmAction(msg){
+  if(confirmKey === msg){ confirmKey = null; return true; }
+  confirmKey = msg; clearTimeout(confirmT); confirmT = setTimeout(()=>confirmKey=null, 3000);
+  toast(msg + ' Toca otra vez para confirmar.'); return false;
+}
 
 /* ================= HISTORY ================= */
 function renderHistory(){
@@ -442,5 +691,15 @@ setInterval(tickClock, 30000);
 document.addEventListener('visibilitychange', () => { if(!document.hidden){ renderStatus(); renderDays(); } });
 // Abrir producto directo con ?p=bowl  (sirve para compartir un producto)
 const qp = new URLSearchParams(location.search).get('p'); if(qp && prodById(qp)) setTimeout(()=>openBuilder(qp), 400);
+$('#manualBtn').hidden = !isAdmin();
+(function(){
+  const h = location.hash;
+  if(h.startsWith('#p=')){
+    try{ history.replaceState(null,'',location.pathname+location.search); }catch{}
+    let o; try{ o = unpack(h.slice(3)); }catch{ toast('Ese enlace de pedido no se pudo leer'); return; }
+    if(isAdmin()) receiveOrder(o);
+    else { pendingOrder = o; showLogin(`Llegó el pedido ${o.id} de ${o.nombre}. Escribe la clave del negocio para guardarlo en tu registro.`); }
+  } else if(h === '#negocio'){ isAdmin() ? openAdmin('pedidos') : showLogin(); }
+})();
 if('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
 })();

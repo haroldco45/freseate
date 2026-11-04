@@ -1,7 +1,7 @@
 // Freseate · service worker
-const CACHE = 'freseate-v2';
+const CACHE = 'freseate-v3';
 const ASSETS = [
-  './', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest',
+  './', 'index.html', 'styles.css', 'config.js', 'app.js', 'manifest.webmanifest',
   'img/logo.webp', 'img/cut-chocolate.webp', 'img/cut-arequipe.webp', 'img/cut-bowl.webp', 'img/cut-oblea.webp',
   'img/foto-chocolate.webp', 'img/foto-arequipe.webp', 'img/foto-bowl.webp', 'img/foto-oblea.webp',
   'img/foto-toppings.webp', 'img/foto-flyer.webp', 'img/icon-192.png'
